@@ -1,11 +1,14 @@
+set(UVATLAS_TAG feb2023)
+
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO Microsoft/UVAtlas
-    REF mar2022
-    SHA512 8e532a754d1b07108c98e099221a1c6eb39e1386e2e61d8694e041fcdf0556d1aeaed703018b18aa0cc2972c1b874fedd4d7b5e5694c504e70d623a78e6eb421
+    REF feb2023b
+    SHA512 4780c6a7f33b7d659e8dd39f48d6adefd22b1a4ed4ff41a1f74614f05048dfed643235d13064a84bd6839642baf9eb7f55f0a8d68db0fb655b7652a7e914fde8
     HEAD_REF main
+    PATCHES openexr.patch
 )
 
 if (VCPKG_HOST_IS_LINUX)
@@ -16,12 +19,15 @@ vcpkg_check_features(
     OUT_FEATURE_OPTIONS FEATURE_OPTIONS
     FEATURES
         eigen ENABLE_USE_EIGEN
+        spectre ENABLE_SPECTRE_MITIGATION
 )
 
-if(VCPKG_TARGET_IS_UWP)
-  set(EXTRA_OPTIONS -DBUILD_TOOLS=OFF)
+set(EXTRA_OPTIONS -DBUILD_TESTING=OFF)
+
+if(VCPKG_TARGET_IS_UWP OR VCPKG_TARGET_IS_XBOX)
+  list(APPEND EXTRA_OPTIONS -DBUILD_TOOLS=OFF)
 else()
-  set(EXTRA_OPTIONS -DBUILD_TOOLS=ON)
+  list(APPEND EXTRA_OPTIONS -DBUILD_TOOLS=ON)
 endif()
 
 vcpkg_cmake_configure(
@@ -30,14 +36,14 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(CONFIG_PATH cmake)
+vcpkg_cmake_config_fixup(CONFIG_PATH share/uvatlas)
 
-if((VCPKG_HOST_IS_WINDOWS) AND (VCPKG_TARGET_ARCHITECTURE MATCHES x64) AND (NOT ("eigen" IN_LIST FEATURES)))
+if(VCPKG_HOST_IS_WINDOWS AND (VCPKG_TARGET_ARCHITECTURE MATCHES x64) AND (NOT ("eigen" IN_LIST FEATURES)))
   vcpkg_download_distfile(
     UVATLASTOOL_EXE
-    URLS "https://github.com/Microsoft/UVAtlas/releases/download/mar2022/uvatlastool.exe"
-    FILENAME "uvatlastool-mar2022.exe"
-    SHA512 d4179b755a9f8d81c180c86ae7e2d177dd0842f78fc81d96b87fa6551407a038edb8250529e45a9b783514e27cbe2a806bac4af47c3db5c34a6e4adc602f5ff4
+    URLS "https://github.com/Microsoft/UVAtlas/releases/download/${UVATLAS_TAG}/uvatlastool.exe"
+    FILENAME "uvatlastool-${UVATLAS_TAG}.exe"
+    SHA512 f34aa4ec7e10bbe24eefe31ddb98841fa097385921d8c3d813e30836749c4b9f4b6e792c371f59c55e446e91845dbd9d333332f6c06cd8cd966cd2bfee89e29e
   )
 
   file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/tools/uvatlas/")
@@ -46,9 +52,9 @@ if((VCPKG_HOST_IS_WINDOWS) AND (VCPKG_TARGET_ARCHITECTURE MATCHES x64) AND (NOT 
     ${UVATLASTOOL_EXE}
     DESTINATION ${CURRENT_PACKAGES_DIR}/tools/uvatlas/)
 
-  file(RENAME ${CURRENT_PACKAGES_DIR}/tools/uvatlas/uvatlastool-mar2022.exe ${CURRENT_PACKAGES_DIR}/tools/uvatlas/uvatlastool.exe)
+  file(RENAME ${CURRENT_PACKAGES_DIR}/tools/uvatlas/uvatlastool-${UVATLAS_TAG}.exe ${CURRENT_PACKAGES_DIR}/tools/uvatlas/uvatlastool.exe)
 
-elseif((VCPKG_TARGET_IS_WINDOWS) AND (NOT VCPKG_TARGET_IS_UWP))
+elseif(VCPKG_TARGET_IS_WINDOWS AND (NOT VCPKG_TARGET_IS_UWP) AND (NOT VCPKG_TARGET_IS_XBOX))
 
   vcpkg_copy_tools(
         TOOL_NAMES uvatlastool
